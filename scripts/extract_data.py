@@ -2,6 +2,8 @@ import psycopg2
 import pandas as pd
 
 def connect_to_db():
+    conn = None
+    cursor = None
     try:
         # Connect to your postgres DB
         conn = psycopg2.connect(
@@ -34,10 +36,21 @@ def connect_to_db():
         return df
     except Exception as e:
         print(f"Error: {e}")
+        return None
     finally:
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 # Load data
 df = connect_to_db()
-print(df.head())
+
+if df is not None:
+    # Check the columns of the DataFrame
+    print("Columns in the fetched data:", df.columns)
+    
+    # Check the first few rows of the DataFrame to verify the data
+    print(df.head())  
+else:
+    print("Failed to fetch data.")
