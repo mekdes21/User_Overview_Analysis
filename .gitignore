@@ -12,12 +12,6 @@ __pycache__/
 /data/*.csv
 /data/*.xlsx
 
-# Outputs, reports, and plots
-/outputs/*
-*.pdf
-*.png
-*.jpg
-
 # Virtual environment
 venv/
 env/
