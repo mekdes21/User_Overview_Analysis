@@ -23,14 +23,17 @@ def connect_to_db():
                "Handset Manufacturer" AS application, 
                "Dur. (ms)" AS session_duration, 
                "Total DL (Bytes)" AS download_data, 
-               "Total UL (Bytes)" AS upload_data
+               "Total UL (Bytes)" AS upload_data,
+               "Handset Type" AS handset_type
         FROM xdr_data;
         """
         cursor.execute(query)
 
         # Fetch the result into a DataFrame
         data = cursor.fetchall()
-        columns = ['user_id', 'application', 'session_duration', 'download_data', 'upload_data']
+
+        # Update columns to match the number of data returned (6 columns)
+        columns = ['user_id', 'application', 'session_duration', 'download_data', 'upload_data', 'handset_type']
         df = pd.DataFrame(data, columns=columns)
 
         return df

@@ -2,7 +2,7 @@ from extract_data import connect_to_db  # Import the function from extract_data.
 
 def clean_data(df):
     # Check for required columns after renaming
-    required_columns = ['session_duration', 'download_data', 'upload_data', 'application', 'user_id']
+    required_columns = ['session_duration', 'download_data', 'upload_data', 'application', 'user_id', 'handset_type']
     missing_columns = [col for col in required_columns if col not in df.columns]
     if missing_columns:
         raise ValueError(f"Missing required columns: {missing_columns}")
@@ -26,6 +26,7 @@ def clean_data(df):
     df['upload_data'] = df['upload_data'].fillna(df['upload_data'].mean())
     df['application'] = df['application'].fillna('Unknown')
     df['user_id'] = df['user_id'].fillna(df['user_id'].mode()[0])
+    df['handset_type'] = df['handset_type'].fillna('Unknown')  # Handle missing handset type
 
     # Calculate the total data volume after cleaning
     df['total_data_volume'] = df['download_data'] + df['upload_data']
@@ -35,7 +36,8 @@ def clean_data(df):
 # Fetch data from PostgreSQL using the function from extract_data.py
 df = connect_to_db()
 
-if df.empty:
+# Check if the fetched data is valid
+if df is None or df.empty:
     print("No data fetched from the database.")
 else:
     # Clean the data
