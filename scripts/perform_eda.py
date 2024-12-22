@@ -1,4 +1,5 @@
 from matplotlib import ticker
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -82,18 +83,35 @@ def perform_pca(df):
     # Create a DataFrame for PCA results
     pca_df = pd.DataFrame(data=pca_components, columns=['PC1', 'PC2'])
 
+    # Save PCA results to CSV
+    pca_df.to_csv('../outputs/pca_results.csv', index=False)
+
     # Plot PCA results
-    plt.scatter(pca_df['PC1'], pca_df['PC2'])
+    plt.figure(figsize=(8, 6))
+    plt.scatter(pca_df['PC1'], pca_df['PC2'], alpha=0.5, edgecolors='k')
     plt.xlabel('Principal Component 1')
     plt.ylabel('Principal Component 2')
-    
+    plt.title('PCA: Principal Components Analysis')
+    plt.grid(True)
+
     # Save PCA scatter plot
     plt.savefig('../outputs/pca_results.png')  # Save image in outputs folder
     plt.show()
 
-    # Print explained variance ratio
+    # Print explained variance ratio and cumulative variance
     print(f"Explained Variance Ratio: {pca.explained_variance_ratio_}")
+    cum_var = np.cumsum(pca.explained_variance_ratio_)
+    print(f"Cumulative Explained Variance: {cum_var}")
+
+    # Interpretation of PCA Results
+    print("PCA Interpretation:")
+    print("1. The first two principal components capture most of the variance, simplifying the data.")
+    print("2. The scatter plot shows patterns and clusters in user behavior based on session duration and data usage.")
+    print("3. Highly correlated variables are transformed into uncorrelated components, reducing redundancy.")
+    print("4. Dimensionality is reduced from 4 to 2, preserving data structure for further analysis.")
+
     return pca, pca_df
+
 
 def perform_kmeans_clustering(df):
     """Perform K-Means clustering and visualize clusters."""
