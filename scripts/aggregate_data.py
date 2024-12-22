@@ -1,4 +1,5 @@
 import pandas as pd
+import matplotlib.pyplot as plt
 from extract_data import connect_to_db  # Import the function from extract_data.py
 from clean_data import clean_data  # Import the clean_data function from clean_data.py
 
@@ -25,7 +26,17 @@ def aggregate_user_data(df):
 
     # Save the aggregated data to a CSV file
     aggregated_data.to_csv('../data/aggregated_data.csv', index=False)
-    
+
+    # Visualization for decile segmentation
+    plt.figure(figsize=(10, 6))
+    plt.bar(total_data_per_decile['decile'], total_data_per_decile['total_data_volume'])
+    plt.xlabel('Decile Class')
+    plt.ylabel('Total Data Volume (Bytes)')
+    plt.title('Total Data Volume per Decile Class')
+    plt.grid(True)
+    plt.savefig('../outputs/decile_segmentation.png')  # Save plot to outputs folder
+    plt.show()
+
     return aggregated_data, total_data_per_decile
 
 # Fetch data from PostgreSQL using the function from extract_data.py
