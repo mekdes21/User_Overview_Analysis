@@ -5,7 +5,12 @@ def clean_data(df):
     print("Columns in the DataFrame:", df.columns)
     
     # Check for required columns (excluding 'application' since it's generated later)
-    required_columns = ['total_session_duration', 'total_download_data', 'total_upload_data', 'user_id', 'handset_type']
+    required_columns = [
+        'total_session_duration', 'total_download_data', 'total_upload_data', 
+        'user_id', 'handset_type', 'social_media_volume', 'google_volume', 
+        'email_volume', 'youtube_volume', 'netflix_volume', 'gaming_volume', 
+        'other_volume'
+    ]
     missing_columns = [col for col in required_columns if col not in df.columns]
     
     if missing_columns:
@@ -22,13 +27,22 @@ def clean_data(df):
         return df[(df[column] >= lower_bound) & (df[column] <= upper_bound)]
 
     # Apply outlier removal to relevant columns
-    for column in ['total_session_duration', 'total_download_data', 'total_upload_data']:
+    for column in ['total_session_duration', 'total_download_data', 'total_upload_data', 
+                   'social_media_volume', 'google_volume', 'email_volume', 
+                   'youtube_volume', 'netflix_volume', 'gaming_volume', 'other_volume']:
         df = remove_outliers(df, column)
 
     # Handle missing values
     df['total_session_duration'] = df['total_session_duration'].fillna(df['total_session_duration'].mean())
     df['total_download_data'] = df['total_download_data'].fillna(df['total_download_data'].mean())
     df['total_upload_data'] = df['total_upload_data'].fillna(df['total_upload_data'].mean())
+    df['social_media_volume'] = df['social_media_volume'].fillna(0)  # Assuming 0 for missing volumes
+    df['google_volume'] = df['google_volume'].fillna(0)
+    df['email_volume'] = df['email_volume'].fillna(0)
+    df['youtube_volume'] = df['youtube_volume'].fillna(0)
+    df['netflix_volume'] = df['netflix_volume'].fillna(0)
+    df['gaming_volume'] = df['gaming_volume'].fillna(0)
+    df['other_volume'] = df['other_volume'].fillna(0)
     df['user_id'] = df['user_id'].fillna(df['user_id'].mode()[0])
     df['handset_type'] = df['handset_type'].fillna('Unknown')  # Handle missing handset type
 

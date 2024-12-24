@@ -18,7 +18,7 @@ def connect_to_db():
         # Create a cursor object
         cursor = conn.cursor()
 
-        # Query to fetch the required data
+        # Modified Query to include necessary data
         query = """
         SELECT 
             "MSISDN/Number" AS user_id,
@@ -26,9 +26,15 @@ def connect_to_db():
             "Handset Type" AS handset_type,
 
             COUNT(*) AS xdr_sessions, -- Count sessions per user
-            SUM("Dur. (ms)") AS total_session_duration, -- Total session duration
-            SUM("Total DL (Bytes)") AS total_download_data, -- Total download data
-            SUM("Total UL (Bytes)") AS total_upload_data, -- Total upload data
+            SUM("Dur. (ms)") AS total_session_duration, -- Total session duration in milliseconds
+            SUM("Total DL (Bytes)") AS total_download_data, -- Total download data in bytes
+            SUM("Total UL (Bytes)") AS total_upload_data, -- Total upload data in bytes
+
+            -- Network-specific metrics
+            SUM("TCP DL Retrans. Vol (Bytes)") AS tcp_dl_retransmission, -- TCP DL retransmission volume
+            SUM("TCP UL Retrans. Vol (Bytes)") AS tcp_ul_retransmission, -- TCP UL retransmission volume
+            AVG("Avg RTT DL (ms)") AS avg_rtt_dl, -- Average RTT download (in milliseconds)
+            AVG("Avg RTT UL (ms)") AS avg_rtt_ul, -- Average RTT upload (in milliseconds)
 
             -- Application-specific data
             SUM("Social Media DL (Bytes)") + SUM("Social Media UL (Bytes)") AS social_media_volume,
@@ -49,10 +55,11 @@ def connect_to_db():
         ORDER BY 
             user_id;
         """
+        
         cursor.execute(query)
 
         # Fetch the result into a DataFrame
-        columns = ['user_id', 'handset_manufacturer', 'handset_type', 'xdr_sessions', 'total_session_duration', 'total_download_data', 'total_upload_data', 'social_media_volume', 'google_volume', 'email_volume', 'youtube_volume', 'netflix_volume', 'gaming_volume', 'other_volume', 'total_volume']
+        columns = ['user_id', 'handset_manufacturer', 'handset_type', 'xdr_sessions', 'total_session_duration', 'total_download_data', 'total_upload_data', 'tcp_dl_retransmission', 'tcp_ul_retransmission', 'avg_rtt_dl', 'avg_rtt_ul', 'social_media_volume', 'google_volume', 'email_volume', 'youtube_volume', 'netflix_volume', 'gaming_volume', 'other_volume', 'total_volume']
         data = cursor.fetchall()
         df = pd.DataFrame(data, columns=columns)
 
