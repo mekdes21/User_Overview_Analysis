@@ -19,8 +19,9 @@ df = connect_to_db()
 
 if df is not None:
     # Check if 'handset_type' exists in the DataFrame
-    if 'handset_type' not in df.columns:
-        print("Error: 'handset_type' column not found in DataFrame.")
+    if 'handset_type' not in df.columns or 'handset_manufacturer' not in df.columns:
+      print("Error: Required columns ('handset_type' or 'handset_manufacturer') not found in DataFrame.")
+      print("Available columns:", df.columns)
     else:
         # 1. Identify Top 10 Handsets Used
         top_10_handsets = df['handset_type'].dropna().value_counts().head(10)  # dropna to handle None/NaN values
@@ -44,8 +45,8 @@ if df is not None:
         plt.close()  # Close the plot to free up memory
 
         # 2. Identify Top 3 Manufacturers
-        # Extract manufacturer names from the 'handset_type' column
-        df['manufacturer'] = df['handset_type'].apply(lambda x: x.split()[0] if isinstance(x, str) else 'Unknown')  # Handle None/NaN values
+        # Extract manufacturer names from the 'handset_manufacturer' column
+        df['manufacturer'] = df['handset_manufacturer'].apply(lambda x: x.split()[0] if isinstance(x, str) else 'Unknown')  # Handle None/NaN values
 
         # Top 3 manufacturers
         top_3_manufacturers = df['manufacturer'].value_counts().head(3)

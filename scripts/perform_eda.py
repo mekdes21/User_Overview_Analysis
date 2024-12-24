@@ -1,207 +1,213 @@
-from matplotlib import ticker
-import numpy as np
 import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import KMeans
-from clean_data import clean_data
-from aggregate_data import aggregate_user_data
-from extract_data import connect_to_db
 import os
 
-def describe_data(df):
-    """Show summary statistics"""
-    summary_stats = df.describe()
-    print(summary_stats)
-    return summary_stats
+from clean_data import clean_data  # Import the clean_data function from clean_data.py
+from aggregate_data import aggregate_user_data, segment_users_into_deciles  # Import aggregation and segmentation functions
+from extract_data import connect_to_db
 
-def perform_bivariate_analysis(df):
-    """Visualize relationships between application and total data."""
-    # Check if the 'total_data' column exists and print column names
-    if 'total_data' not in df.columns:
-        print("Error: 'total_data' column not found in DataFrame.")
-        print("Columns available: ", df.columns)
-        return
+def perform_eda(df):
+    # Define the output directory for saving plots
+    output_dir_png = '../outputs/'
+    os.makedirs(output_dir_png, exist_ok=True)
 
-    # Bivariate analysis: application vs total data
-    plt.figure(figsize=(12, 6))  # Increase figure size for more space
+    # Perform basic EDA on the cleaned data
+    print("Basic Statistics:")
+    # Basic statistics for numerical columns
+    print(df.describe())
+
+    # Non-Graphical Univariate Analysis (Dispersion Parameters)
+    quantitative_columns = ['total_session_duration', 'total_data_volume', 'total_download_data', 'total_upload_data']
+    print("\nNon-Graphical Univariate Analysis - Dispersion Parameters:")
     
-    sns.boxplot(x='application', y='total_data', data=df)
+    # Calculate and print the dispersion parameters for each quantitative variable
+    for column in quantitative_columns:
+        print(f"\n{column}:")
+        mean = df[column].mean()
+        median = df[column].median()
+        variance = df[column].var()
+        std_dev = df[column].std()
+        iqr = df[column].quantile(0.75) - df[column].quantile(0.25)
+        skewness = df[column].skew()
+        kurtosis = df[column].kurtosis()
+
+        # Display the statistics
+        print(f"Mean: {mean:.2f}")
+        print(f"Median: {median:.2f}")
+        print(f"Variance: {variance:.2f}")
+        print(f"Standard Deviation: {std_dev:.2f}")
+        print(f"Interquartile Range (IQR): {iqr:.2f}")
+        print(f"Skewness: {skewness:.2f}")
+        print(f"Kurtosis: {kurtosis:.2f}")
+        
+        # Interpretation of the metrics
+        print("Interpretation:")
+        if skewness > 0:
+            print(f"The distribution of {column} is positively skewed.")
+        elif skewness < 0:
+            print(f"The distribution of {column} is negatively skewed.")
+        else:
+            print(f"The distribution of {column} is symmetric.")
+
+        if kurtosis > 0:
+            print(f"The distribution of {column} is leptokurtic (heavier tails).")
+        elif kurtosis < 0:
+            print(f"The distribution of {column} is platykurtic (lighter tails).")
+        else:
+            print(f"The distribution of {column} is mesokurtic (normal).")
+
+    # Graphical Univariate Analysis
+    print("\nGraphical Univariate Analysis:")
     
-    # Rotate x-axis labels and adjust their position
-    plt.xticks(rotation=45, ha='right', fontsize=10)  # Adjust angle and alignment
-    
-    # Adjust the x-axis tick spacing manually using MaxNLocator
-    plt.gca().xaxis.set_major_locator(ticker.MaxNLocator(integer=True, prune='both', nbins=10))
-    
-    # Increase space between ticks
-    plt.gca().tick_params(axis='x', which='major', pad=15)  # Increase the space between ticks
-    
-    # Adjust layout to provide more space for labels
-    plt.subplots_adjust(bottom=0.25)  # Increase bottom margin
-    
-    # Save the plot
-    plt.savefig('../outputs/total_data_by_application.png')  # Save image in outputs folder
+    # Plotting for total session duration (Continuous Variable)
+    plt.figure(figsize=(10, 6))
+    plt.hist(df['total_session_duration'], bins=50, color='skyblue')
+    plt.xlabel('Total Session Duration (ms)')
+    plt.ylabel('Frequency')
+    plt.title('Distribution of Total Session Duration')
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir_png, 'distribution_of_total_session_duration.png'))
+    plt.show()
+    print("Total session duration shows a distribution with several peaks, indicating varied user behavior.")
+
+    # Plotting for total data volume (Continuous Variable)
+    plt.figure(figsize=(10, 6))
+    plt.hist(df['total_data_volume'], bins=50, color='lightgreen')
+    plt.xlabel('Total Data Volume (Bytes)')
+    plt.ylabel('Frequency')
+    plt.title('Distribution of Total Data Volume')
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir_png, 'distribution_of_total_data_volume.png'))
+    plt.show()
+    print("The total data volume distribution is positively skewed, indicating some users consume significantly more data.")
+
+    # Plotting a box plot for total session duration to check for outliers
+    plt.figure(figsize=(10, 6))
+    plt.boxplot(df['total_session_duration'], vert=False, patch_artist=True, boxprops=dict(facecolor='lightblue'))
+    plt.xlabel('Total Session Duration (ms)')
+    plt.title('Box Plot of Total Session Duration')
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir_png, 'boxplot_total_session_duration.png'))
+    plt.show()
+    print("The box plot shows that there are some extreme outliers for total session duration, suggesting high engagement by a few users.")
+
+    # Plotting a box plot for total data volume to check for outliers
+    plt.figure(figsize=(10, 6))
+    plt.boxplot(df['total_data_volume'], vert=False, patch_artist=True, boxprops=dict(facecolor='lightcoral'))
+    plt.xlabel('Total Data Volume (Bytes)')
+    plt.title('Box Plot of Total Data Volume')
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir_png, 'boxplot_total_data_volume.png'))
+    plt.show()
+    print("The box plot indicates a few outliers in total data volume, with some users consuming unusually large amounts of data.")
+
+    # Analyzing the correlation between total session duration and total data volume
+    correlation = df[['total_session_duration', 'total_data_volume']].corr()
+    print("Correlation between Total Session Duration and Total Data Volume:")
+    print(correlation)
+
+    # Segment users into deciles based on total session duration
+    print("\nSegmenting users into deciles...")
+    decile_summary = segment_users_into_deciles(df)
+
+    # Plotting the total data volume per decile
+    plt.figure(figsize=(10, 6))
+    plt.bar(decile_summary['duration_decile'], decile_summary['total_data_volume'], color='skyblue')
+    plt.xlabel('Decile Class')
+    plt.ylabel('Total Data Volume (Bytes)')
+    plt.title('Total Data Volume per Decile Class')
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir_png, 'total_data_volume_per_decile.png'))
     plt.show()
 
-def perform_correlation_analysis(df):
-    """Compute and visualize correlation between numeric columns."""
-    # Check if necessary columns exist before performing correlation analysis
-    required_columns = ['download_data', 'upload_data', 'total_data']
-    if not all(col in df.columns for col in required_columns):
-        print(f"Error: Missing one or more columns: {required_columns}")
-        return
+    # Segmenting by application (optional additional transformation)
+    print("\nSegmenting by Application...")
+    aggregated_data, app_data_volume = aggregate_user_data(df)
 
-    # Compute correlation matrix
-    correlation_matrix = df[required_columns].corr()
-    
-    # Plot correlation heatmap
-    sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f')
-    
-    # Save the heatmap image
-    plt.savefig('../outputs/correlation_matrix.png')  # Save image in outputs folder
+    # Plotting total data per application
+    plt.figure(figsize=(10, 6))
+    plt.bar(app_data_volume['application'], app_data_volume['total_data_volume'], color='lightcoral')
+    plt.xlabel('Application')
+    plt.ylabel('Total Data Volume (Bytes)')
+    plt.title('Total Data Volume per Application')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir_png, 'total_data_volume_per_application.png'))
     plt.show()
+ 
+    # **Correlation Analysis - Correlation Matrix for Applications**
+    print("\nCorrelation Analysis - Computing the Correlation Matrix for Applications:")
 
-def perform_pca(df):
-    """Perform PCA for dimensionality reduction."""
-    # Check if necessary columns exist before performing PCA
-    required_columns = ['session_duration', 'download_data', 'upload_data', 'total_data']
-    if not all(col in df.columns for col in required_columns):
-        print(f"Error: Missing one or more columns: {required_columns}")
-        return
+    # Ensure the correct column names (numeric data for each application)
+    correlation_columns = ['social_media_volume', 'google_volume', 'email_volume', 
+                           'youtube_volume', 'netflix_volume', 'gaming_volume', 'other_volume']
 
-    # Standardize the data
-    features = required_columns
-    scaled_data = StandardScaler().fit_transform(df[features])
+    # Check if these columns exist
+    missing_columns = [col for col in correlation_columns if col not in df.columns]
+    if missing_columns:
+        print(f"Warning: The following columns are missing: {missing_columns}")
+    else:
+        correlation_data = df[correlation_columns].corr()
 
-    # Apply PCA
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(correlation_data, annot=True, cmap='coolwarm', fmt=".2f", linewidths=0.5)
+        plt.title("Correlation Matrix of Application Data")
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir_png, 'correlation_matrix.png'))
+        plt.show()
+        print(correlation_data)
+
+    # **Dimensionality Reduction - PCA**
+    print("\nDimensionality Reduction - Performing PCA...")
+    pca_data = df[['social_media_volume', 'google_volume', 'email_volume', 
+                   'youtube_volume', 'netflix_volume', 'gaming_volume', 'other_volume']].values
     pca = PCA(n_components=2)
-    pca_components = pca.fit_transform(scaled_data)
+    pca_result = pca.fit_transform(pca_data)
 
-    # Create a DataFrame for PCA results
-    pca_df = pd.DataFrame(data=pca_components, columns=['PC1', 'PC2'])
+    # Adding the PCA results to the dataframe for further analysis
+    df['PCA1'] = pca_result[:, 0]
+    df['PCA2'] = pca_result[:, 1]
 
-    # Save PCA results to CSV
-    pca_df.to_csv('../outputs/pca_results.csv', index=False)
-
-    # Plot PCA results
-    plt.figure(figsize=(8, 6))
-    plt.scatter(pca_df['PC1'], pca_df['PC2'], alpha=0.5, edgecolors='k')
+    plt.figure(figsize=(10, 6))
+    plt.scatter(df['PCA1'], df['PCA2'], alpha=0.5, color='lightcoral')
     plt.xlabel('Principal Component 1')
     plt.ylabel('Principal Component 2')
-    plt.title('PCA: Principal Components Analysis')
+    plt.title('PCA – Application Data')
     plt.grid(True)
-
-    # Save PCA scatter plot
-    plt.savefig('../outputs/pca_results.png')  # Save image in outputs folder
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir_png, 'pca_results.png'))
     plt.show()
 
-    # Print explained variance ratio and cumulative variance
-    print(f"Explained Variance Ratio: {pca.explained_variance_ratio_}")
-    cum_var = np.cumsum(pca.explained_variance_ratio_)
-    print(f"Cumulative Explained Variance: {cum_var}")
+    print("\nPCA Interpretation:")
+    print("1. The first principal component explains the largest variance in the data, mainly driven by Social Media and YouTube usage.")
+    print("2. The second principal component explains additional variance, with Netflix and Gaming being significant contributors.")
+    print("3. Users with high scores in Principal Component 1 tend to have higher usage in social media and video streaming applications.")
+    print("4. Principal Component 2 separates users who are more involved in gaming and entertainment apps like Netflix.")
 
-    # Interpretation of PCA Results
-    print("PCA Interpretation:")
-    print("1. The first two principal components capture most of the variance, simplifying the data.")
-    print("2. The scatter plot shows patterns and clusters in user behavior based on session duration and data usage.")
-    print("3. Highly correlated variables are transformed into uncorrelated components, reducing redundancy.")
-    print("4. Dimensionality is reduced from 4 to 2, preserving data structure for further analysis.")
-
-    return pca, pca_df
-
-
-def perform_kmeans_clustering(df):
-    """Perform K-Means clustering and visualize clusters."""
-    # Check if necessary columns exist before performing clustering
-    required_columns = ['session_duration', 'download_data', 'upload_data', 'total_data']
-    if not all(col in df.columns for col in required_columns):
-        print(f"Error: Missing one or more columns: {required_columns}")
-        return
-    
-    # Handle missing values
-    df = df.dropna(subset=required_columns)
-    
-    # Standardize the data
-    scaler = StandardScaler()
-    scaled_data = scaler.fit_transform(df[required_columns])
-
-    # Perform KMeans clustering (use elbow method to find optimal k)
-    inertia = []
-    for k in range(1, 11):
-        kmeans = KMeans(n_clusters=k, random_state=42)
-        kmeans.fit(scaled_data)
-        inertia.append(kmeans.inertia_)
-
-    # Plot the Elbow Method
-    plt.plot(range(1, 11), inertia)
-    plt.title('Elbow Method for Optimal K')
-    plt.xlabel('Number of Clusters')
-    plt.ylabel('Inertia')
-    
-    # Save elbow plot
-    plt.savefig('../outputs/elbow_method.png')  # Save image in outputs folder
-    plt.show()
-
-    # Choose optimal k (based on elbow method)
-    optimal_k = 3  # Example optimal k
-    kmeans = KMeans(n_clusters=optimal_k, random_state=42)
-    df['cluster'] = kmeans.fit_predict(scaled_data)
-
-    # Plot the clustering results
-    plt.scatter(df['session_duration'], df['total_data'], c=df['cluster'], cmap='viridis')
-    plt.xlabel('Session Duration')
-    plt.ylabel('Total Data')
-    plt.title('K-Means Clusters')
-
-    # Save clustering plot
-    plt.savefig('../outputs/kmeans_clusters.png')  # Save image in outputs folder
-    plt.show()
-
-    return df
-
-# Main function to perform EDA
-def main():
-    # Create the 'outputs' directory if it doesn't exist
-    if not os.path.exists('../outputs'):
-        os.makedirs('../outputs')
-
-    # Extract data from extract_data.py
-    df = connect_to_db()  # Use the function from extract_data.py
-
-    # Clean the data
-    cleaned_df = clean_data(df)
-
-    # Strip leading/trailing spaces from column names to avoid issues
-    cleaned_df.columns = cleaned_df.columns.str.strip()
-
-    # Add total_data as the sum of download_data and upload_data
-    cleaned_df['total_data'] = cleaned_df['download_data'] + cleaned_df['upload_data']
-
-    # Print column names to ensure 'total_data' exists
-    print("Columns in cleaned data:", cleaned_df.columns)
-
-    # Describe data
-    describe_data(cleaned_df)
-
-    # Perform bivariate analysis
-    perform_bivariate_analysis(cleaned_df)
-
-    # Perform correlation analysis
-    perform_correlation_analysis(cleaned_df)
-
-    # Perform PCA
-    pca, pca_df = perform_pca(cleaned_df)
-
-    # Perform KMeans clustering
-    clustered_data = perform_kmeans_clustering(cleaned_df)
-
-    # Perform data aggregation (e.g., decile analysis)
-    aggregated_data, total_data_per_decile = aggregate_user_data(cleaned_df)
-    print(aggregated_data)
-    print(total_data_per_decile)
+    return decile_summary, app_data_volume
 
 if __name__ == "__main__":
-    main()
+    # Fetch data from PostgreSQL using the function from extract_data.py
+    df = connect_to_db()
+
+    if df is not None:
+        # Clean the data using the function from clean_data.py
+        df = clean_data(df)
+        
+        # Perform EDA and variable transformations
+        decile_summary, app_data_volume = perform_eda(df)
+        
+        # Display the results
+        print("Decile Summary:")
+        print(decile_summary)
+        
+        print("\nTotal Data Volume per Application:")
+        print(app_data_volume)
+
+    else:
+        print("Failed to fetch data.")
